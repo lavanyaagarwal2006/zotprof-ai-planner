@@ -43,40 +43,6 @@ export const SearchBar = ({ onSearch }: SearchBarProps) => {
           </div>
         </div>
       </div>
-
-      <div className="flex items-center justify-center gap-4 mt-6">
-        <button
-          type="button"
-          onClick={() => setQuery("ICS 33 winter 2025")}
-          className="text-sm text-muted-foreground hover:text-primary transition-colors duration-300 underline-offset-4 hover:underline"
-        >
-          ICS 33 Winter 2025
-        </button>
-        <span className="text-muted-foreground">•</span>
-        <button
-          type="button"
-          onClick={() => setQuery("Professor Pattis")}
-          className="text-sm text-muted-foreground hover:text-primary transition-colors duration-300 underline-offset-4 hover:underline"
-        >
-          Professor Pattis
-        </button>
-        <span className="text-muted-foreground">•</span>
-        <button
-          type="button"
-          onClick={() => setQuery("Thornton vs Pattis")}
-          className="text-sm text-muted-foreground hover:text-primary transition-colors duration-300 underline-offset-4 hover:underline"
-        >
-          Thornton vs Pattis
-        </button>
-        <span className="text-muted-foreground">•</span>
-        <button
-          type="button"
-          onClick={() => setQuery("easiest writing class")}
-          className="text-sm text-muted-foreground hover:text-primary transition-colors duration-300 underline-offset-4 hover:underline"
-        >
-          Easiest Writing
-        </button>
-      </div>
     </form>
   );
 };
