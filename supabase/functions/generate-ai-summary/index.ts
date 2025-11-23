@@ -103,6 +103,26 @@ TOP REVIEWS:
 ${reviews?.slice(0, 5).map((r: any) => `- "${r.comment}"`).join('\n') || 'No reviews'}
 
 Create an honest, specific insight that captures their teaching style. Be concise and actionable (max 40 words).`;
+    } else if (type === 'chat-response') {
+      // Handle chat conversation
+      const { messages, userMessage } = data;
+      
+      // Use the messages array to build context
+      const conversationContext = messages?.slice(-6) || []; // Last 6 messages for context
+      
+      prompt = `You are ZotProf AI, a friendly UCI academic advisor chatbot.
+
+Help students plan their course schedules by:
+- Asking what quarter they're planning for
+- Finding out which courses they need
+- Understanding their goals (GPA, learning, balance)
+- Providing personalized recommendations
+
+Be conversational, friendly, and use emojis occasionally. Keep responses concise (3-5 sentences per message).
+
+User's message: ${userMessage}
+
+Respond naturally to continue the conversation.`;
     } else {
       return new Response(JSON.stringify({ error: 'Invalid summary type' }), {
         status: 400,
