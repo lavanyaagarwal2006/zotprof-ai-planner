@@ -129,8 +129,26 @@ export async function getGradeDistribution(
 
     const result = await response.json();
     
-    if (result.data?.length > 0) {
-      return result.data as GradeData[];
+    // API response structure: { ok: true, data: { sectionList: [...], gradeDistribution: {...} } }
+    if (result.ok && result.data?.sectionList?.length > 0) {
+      // Convert the sectionList to GradeData format for compatibility
+      return result.data.sectionList.map((section: any) => ({
+        year: section.year,
+        quarter: section.quarter,
+        instructor: section.instructors[0] || instructor,
+        department: section.department,
+        courseNumber: section.courseNumber,
+        sectionCode: section.sectionCode,
+        // Use the aggregated grade distribution from the API
+        gradeACount: result.data.gradeDistribution.gradeACount,
+        gradeBCount: result.data.gradeDistribution.gradeBCount,
+        gradeCCount: result.data.gradeDistribution.gradeCCount,
+        gradeDCount: result.data.gradeDistribution.gradeDCount,
+        gradeFCount: result.data.gradeDistribution.gradeFCount,
+        gradePCount: result.data.gradeDistribution.gradePCount,
+        gradeNPCount: result.data.gradeDistribution.gradeNPCount,
+        gradeWCount: result.data.gradeDistribution.gradeWCount,
+      })) as GradeData[];
     }
     
     return null;
