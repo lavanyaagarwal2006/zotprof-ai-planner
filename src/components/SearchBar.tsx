@@ -3,17 +3,16 @@ import { Search, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface SearchBarProps {
-  onSearch: (query: string, type: "class" | "professor") => void;
+  onSearch: (query: string) => void;
 }
 
 export const SearchBar = ({ onSearch }: SearchBarProps) => {
   const [query, setQuery] = useState("");
-  const [searchType, setSearchType] = useState<"class" | "professor">("class");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (query.trim()) {
-      onSearch(query, searchType);
+      onSearch(query.trim());
     }
   };
 
@@ -28,46 +27,19 @@ export const SearchBar = ({ onSearch }: SearchBarProps) => {
             
             <input
               type="text"
-              placeholder="Search ICS 33, Professor Pattis, or explore courses..."
+              placeholder="Ask anything: ICS 33 winter 2025, Professor Pattis, easiest math class..."
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               className="flex-1 bg-transparent text-base text-foreground placeholder:text-muted-foreground focus:outline-none"
             />
 
-            <div className="flex items-center gap-2 flex-shrink-0">
-              <button
-                type="button"
-                onClick={() => setSearchType("class")}
-                className={cn(
-                  "px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-300",
-                  searchType === "class"
-                    ? "bg-primary text-primary-foreground shadow-lg"
-                    : "bg-transparent text-muted-foreground hover:text-foreground"
-                )}
-              >
-                Class
-              </button>
-              <button
-                type="button"
-                onClick={() => setSearchType("professor")}
-                className={cn(
-                  "px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-300",
-                  searchType === "professor"
-                    ? "bg-primary text-primary-foreground shadow-lg"
-                    : "bg-transparent text-muted-foreground hover:text-foreground"
-                )}
-              >
-                Professor
-              </button>
-
-              <button
-                type="submit"
-                disabled={!query.trim()}
-                className="w-12 h-12 rounded-full bg-gradient-to-r from-primary to-purple text-white flex items-center justify-center transition-all duration-300 hover:scale-110 hover:shadow-[0_0_30px_rgba(59,130,246,0.6)] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-              >
-                <ArrowRight className="h-5 w-5" />
-              </button>
-            </div>
+            <button
+              type="submit"
+              disabled={!query.trim()}
+              className="w-12 h-12 rounded-full bg-gradient-to-r from-primary to-purple text-white flex items-center justify-center transition-all duration-300 hover:scale-110 hover:shadow-[0_0_30px_rgba(59,130,246,0.6)] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex-shrink-0"
+            >
+              <ArrowRight className="h-5 w-5" />
+            </button>
           </div>
         </div>
       </div>
@@ -75,26 +47,34 @@ export const SearchBar = ({ onSearch }: SearchBarProps) => {
       <div className="flex items-center justify-center gap-4 mt-6">
         <button
           type="button"
-          onClick={() => setQuery("ICS 33")}
+          onClick={() => setQuery("ICS 33 winter 2025")}
           className="text-sm text-muted-foreground hover:text-primary transition-colors duration-300 underline-offset-4 hover:underline"
         >
-          ICS 33
+          ICS 33 Winter 2025
         </button>
         <span className="text-muted-foreground">•</span>
         <button
           type="button"
-          onClick={() => setQuery("Richard Pattis")}
+          onClick={() => setQuery("Professor Pattis")}
           className="text-sm text-muted-foreground hover:text-primary transition-colors duration-300 underline-offset-4 hover:underline"
         >
-          Richard Pattis
+          Professor Pattis
         </button>
         <span className="text-muted-foreground">•</span>
         <button
           type="button"
-          onClick={() => setQuery("Computer Science")}
+          onClick={() => setQuery("Thornton vs Pattis")}
           className="text-sm text-muted-foreground hover:text-primary transition-colors duration-300 underline-offset-4 hover:underline"
         >
-          Computer Science
+          Thornton vs Pattis
+        </button>
+        <span className="text-muted-foreground">•</span>
+        <button
+          type="button"
+          onClick={() => setQuery("easiest writing class")}
+          className="text-sm text-muted-foreground hover:text-primary transition-colors duration-300 underline-offset-4 hover:underline"
+        >
+          Easiest Writing
         </button>
       </div>
     </form>

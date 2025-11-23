@@ -8,8 +8,8 @@ import { Sparkles } from "lucide-react";
 const Index = () => {
   const navigate = useNavigate();
 
-  const handleSearch = (query: string, type: "class" | "professor") => {
-    navigate(`/search?q=${encodeURIComponent(query)}&type=${type}`);
+  const handleSearch = (query: string) => {
+    navigate(`/search?q=${encodeURIComponent(query)}`);
   };
 
   const handleAIPlanning = () => {
