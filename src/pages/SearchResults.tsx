@@ -43,14 +43,14 @@ const SearchResults = () => {
         
         console.log('Parsed:', parsed);
         
-        // Fetch course sections from Anteater API (try Fall 2024 first, then Winter 2025)
-        let course = await getCourseSections('2024', 'Fall', parsed.department, parsed.courseNumber);
-        let quarterText = 'Fall 2024';
+        // Fetch course sections from Anteater API (try Fall 2025 first, then Winter 2026)
+        let course = await getCourseSections('2025', 'Fall', parsed.department, parsed.courseNumber);
+        let quarterText = 'Fall 2025';
         
-        // If no results, try Winter 2025
+        // If no results, try Winter 2026
         if (!course || course.sections.length === 0) {
-          course = await getCourseSections('2025', 'Winter', parsed.department, parsed.courseNumber);
-          quarterText = 'Winter 2025';
+          course = await getCourseSections('2026', 'Winter', parsed.department, parsed.courseNumber);
+          quarterText = 'Winter 2026';
         }
         
         if (!course) {
