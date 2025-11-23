@@ -5,14 +5,22 @@ import { Button } from "@/components/ui/button";
 import { Header } from "@/components/Header";
 import { ProfessorCard, Professor } from "@/components/ProfessorCard";
 import { toast } from "sonner";
-import { parseSearchIntent, fetchCourseData, generateAISummary } from "@/lib/api";
+import { 
+  getCourseSections, 
+  getGradeDistribution, 
+  calculateGradePercentages,
+  formatMeetingTime,
+  getSeatAvailabilityPercent,
+  isAlmostFull,
+  parseSearchQuery
+} from "@/services/anteaterAPI";
+import { generateProfessorSummary } from "@/services/aiService";
 
 const SearchResults = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [professors, setProfessors] = useState<Professor[]>([]);
-  const [aiRecommendation, setAiRecommendation] = useState<string>("");
   const [courseInfo, setCourseInfo] = useState<any>(null);
   
   const query = searchParams.get("q") || "";
@@ -23,131 +31,119 @@ const SearchResults = () => {
       
       setLoading(true);
       try {
-        // Step 1: Parse search intent using AI
-        console.log('Parsing search intent for:', query);
-        const intent = await parseSearchIntent(query);
-        console.log('Search intent:', intent);
+        console.log('Searching for:', query);
         
-        if (intent.type === "class" && intent.department && intent.courseNumber) {
-          // Step 2: Fetch course data from PeterAPI
-          const courseData = await fetchCourseData(
-            intent.department,
-            intent.courseNumber,
-            intent.term || undefined
-          );
-          
-          console.log('Course data:', courseData);
-          
-          // Check if we're using mock data (happens in preview environment)
-          const isUsingMockData = courseData.course?.description?.includes('unavailable in preview');
-          if (isUsingMockData) {
-            toast.info("📋 Showing demo data in preview. Real data will load in production.");
-          }
-          
-          setCourseInfo(courseData.course);
-          
-          // Step 3: Transform API data into Professor cards format
-          const professorCards: Professor[] = await Promise.all(
-            courseData.instructors.map(async (instructor: any) => {
-              // Find sections for this instructor
-              const instructorSections = courseData.sections.filter((section: any) =>
-                section.meetings?.some((meeting: any) =>
-                  meeting.instructors?.includes(instructor.name)
-                )
-              );
-              
-              // Get grade data for this instructor
-              const gradeData = courseData.grades[instructor.name] || [];
-              let grades = { A: 0, B: 0, C: 0, D: 0, F: 0 };
-              
-              if (gradeData.length > 0) {
-                const totals = gradeData.reduce((acc: any, term: any) => ({
-                  A: acc.A + (term.gradeACount || 0),
-                  B: acc.B + (term.gradeBCount || 0),
-                  C: acc.C + (term.gradeCCount || 0),
-                  D: acc.D + (term.gradeDCount || 0),
-                  F: acc.F + (term.gradeFCount || 0),
-                }), { A: 0, B: 0, C: 0, D: 0, F: 0 });
-                
-                const total = totals.A + totals.B + totals.C + totals.D + totals.F;
-                if (total > 0) {
-                  grades = {
-                    A: Math.round((totals.A / total) * 100),
-                    B: Math.round((totals.B / total) * 100),
-                    C: Math.round((totals.C / total) * 100),
-                    D: Math.round((totals.D / total) * 100),
-                    F: Math.round((totals.F / total) * 100),
-                  };
-                }
-              }
-              
-              // Get first section info
-              const firstSection = instructorSections[0];
-              const firstMeeting = firstSection?.meetings?.[0];
-              
-              // Generate AI insight for this professor (in parallel)
-              let aiInsight = "";
-              try {
-                const summaryResult = await generateAISummary('professor-insight', {
-                  name: instructor.name,
-                  rmpData: { avgRating: 0, avgDifficulty: 0 }, // We'll add RMP data later
-                  reviews: []
-                });
-                aiInsight = summaryResult.summary;
-              } catch (error) {
-                console.error('Error generating AI insight:', error);
-                aiInsight = `Professor in the ${instructor.department || 'department'}.`;
-              }
-              
+        // Parse the search query
+        const parsed = parseSearchQuery(query);
+        if (!parsed) {
+          toast.error("Invalid search format. Try 'ICS 33' or 'COMPSCI 33'");
+          setLoading(false);
+          return;
+        }
+        
+        console.log('Parsed:', parsed);
+        
+        // Fetch course sections from Anteater API (default to Winter 2025)
+        const course = await getCourseSections('2025', 'Winter', parsed.department, parsed.courseNumber);
+        
+        if (!course) {
+          toast.error(`No results found for ${query}. Try another course.`);
+          setLoading(false);
+          return;
+        }
+        
+        console.log('Course data:', course);
+        setCourseInfo({
+          id: `${course.deptCode} ${course.courseNumber}`,
+          title: course.courseTitle,
+          description: course.courseComment
+        });
+        
+        // Process each section
+        const enrichedSections = await Promise.all(
+          course.sections.map(async (section) => {
+            const instructor = section.instructors[0];
+            
+            // Skip if instructor is STAFF or TBA
+            if (!instructor || instructor === 'STAFF' || instructor === 'TBA') {
               return {
-                name: instructor.name,
-                department: instructor.department || "Computer Science",
-                rating: 0, // Will be populated when we add RMP data
+                name: instructor || 'TBA',
+                department: course.deptCode,
+                rating: 0,
                 difficulty: 0,
                 reviewCount: 0,
-                grades,
+                grades: { A: 0, B: 0, C: 0, D: 0, F: 0 },
                 section: {
-                  time: firstMeeting ? `${firstMeeting.days || 'TBA'} ${firstMeeting.time || ''}`.trim() : 'TBA',
+                  time: formatMeetingTime(section),
                   seats: {
-                    available: firstSection?.numCurrentlyEnrolled?.totalEnrolled 
-                      ? (firstSection.maxCapacity - firstSection.numCurrentlyEnrolled.totalEnrolled)
-                      : 0,
-                    total: firstSection?.maxCapacity || 0,
+                    available: section.maxCapacity - section.numCurrentlyEnrolled.totalEnrolled,
+                    total: section.maxCapacity,
                   },
-                  code: firstSection?.sectionCode || 'N/A',
+                  code: section.sectionCode,
                 },
-                tags: [],
-                aiInsight,
+                tags: ['TBA'],
+                aiInsight: 'Instructor to be announced.',
               };
-            })
-          );
-          
-          setProfessors(professorCards);
-          
-          // Generate course recommendation if multiple professors
-          if (professorCards.length > 1) {
-            try {
-              const recommendation = await generateAISummary('course-recommendation', {
-                course: `${intent.department} ${intent.courseNumber}`,
-                professors: professorCards.map(p => ({
-                  name: p.name,
-                  rmpData: { avgRating: p.rating, avgDifficulty: p.difficulty, wouldTakeAgainPercent: 0 },
-                  topTags: p.tags,
-                  sections: [p.section]
-                })),
-                userProfile: null
-              });
-              setAiRecommendation(recommendation.summary);
-            } catch (error) {
-              console.error('Error generating recommendation:', error);
             }
-          }
-        } else {
-          toast.error("Unable to parse search query. Try: 'ICS 33 winter 2025' or 'Professor Pattis'");
-        }
+            
+            // Fetch grade distribution
+            const gradeData = await getGradeDistribution(instructor, parsed.courseNumber);
+            const gradePercentages = gradeData ? calculateGradePercentages(gradeData) : null;
+            
+            // Convert to Professor card format
+            const grades = gradePercentages ? {
+              A: gradePercentages.aPercent,
+              B: gradePercentages.bPercent,
+              C: gradePercentages.cPercent,
+              D: gradePercentages.dPercent,
+              F: gradePercentages.fPercent,
+            } : { A: 0, B: 0, C: 0, D: 0, F: 0 };
+            
+            // Generate AI summary
+            let aiInsight = '';
+            try {
+              aiInsight = await generateProfessorSummary(instructor, gradePercentages);
+            } catch (error) {
+              console.error('Error generating AI insight:', error);
+              aiInsight = `Professor ${instructor} teaches this course. ${gradePercentages ? `Grade distribution: ${gradePercentages.aPercent}% A's, ${gradePercentages.bPercent}% B's.` : 'Historical data unavailable.'}`;
+            }
+            
+            const seatPercent = getSeatAvailabilityPercent(section);
+            const almostFull = isAlmostFull(section);
+            
+            return {
+              name: instructor,
+              department: course.deptCode,
+              rating: 0, // RMP data would go here
+              difficulty: gradePercentages ? (gradePercentages.fPercent > 20 ? 4.5 : 3.5) : 0,
+              reviewCount: gradePercentages ? gradePercentages.totalGrades : 0,
+              grades,
+              section: {
+                time: formatMeetingTime(section),
+                seats: {
+                  available: section.maxCapacity - section.numCurrentlyEnrolled.totalEnrolled,
+                  total: section.maxCapacity,
+                },
+                code: section.sectionCode,
+              },
+              tags: [
+                almostFull ? '⚠️ Almost Full' : `${seatPercent}% Full`,
+                gradePercentages ? `${gradePercentages.aPercent}% A's` : 'No grades',
+                section.meetings[0]?.bldg?.[0] || 'TBA'
+              ],
+              aiInsight,
+            };
+          })
+        );
+        
+        // Filter out any null results and set
+        setProfessors(enrichedSections.filter(p => p !== null) as Professor[]);
+        
+        toast.success(`Found ${enrichedSections.length} section${enrichedSections.length !== 1 ? 's' : ''} for ${course.courseTitle}`);
+        
       } catch (error) {
         console.error('Error fetching search results:', error);
-        toast.error("Failed to load search results. Please try again.");
+        toast.error("Failed to load course data. Please try again.");
       } finally {
         setLoading(false);
       }
@@ -208,21 +204,6 @@ const SearchResults = () => {
       </div>
 
       <main className="container mx-auto px-4 md:px-8 py-8">
-        {/* AI Recommendation Card (if available) */}
-        {!loading && aiRecommendation && professors.length > 1 && (
-          <div className="bg-gradient-to-r from-accent/10 to-primary/10 border border-accent/30 rounded-2xl p-6 mb-8 hover-lift-sm">
-            <div className="flex items-start gap-4">
-              <div className="w-10 h-10 rounded-full bg-accent/20 flex items-center justify-center flex-shrink-0">
-                <Sparkles className="h-5 w-5 text-accent" />
-              </div>
-              <div className="flex-1">
-                <h3 className="text-lg font-bold text-foreground mb-2">🎯 AI Recommendation</h3>
-                <p className="text-muted-foreground leading-relaxed">{aiRecommendation}</p>
-              </div>
-            </div>
-          </div>
-        )}
-
         {/* Course Header Card */}
         {!loading && courseInfo && (
           <div className="bg-gradient-to-br from-primary/10 via-purple/10 to-transparent border border-white/10 rounded-2xl p-8 mb-8 relative overflow-hidden hover-lift-sm">
@@ -242,7 +223,7 @@ const SearchResults = () => {
                 <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-2 tracking-tight">
                   {courseInfo.title || "Course Information"}
                 </h1>
-                <p className="text-muted-foreground">{professors.length} professor{professors.length !== 1 ? 's' : ''} teaching this course</p>
+                <p className="text-muted-foreground">{professors.length} section{professors.length !== 1 ? 's' : ''} available for Winter 2025</p>
               </div>
             </div>
           </div>
@@ -279,14 +260,14 @@ const SearchResults = () => {
         )}
 
         {/* Empty State */}
-        {!loading && professors.length === 0 && (
+        {!loading && professors.length === 0 && courseInfo && (
           <div className="text-center py-16">
-            <div className="text-6xl mb-4">🔍</div>
+            <div className="text-6xl mb-4">📚</div>
             <h2 className="text-2xl font-heading font-semibold mb-2">
-              No professors found
+              No sections available
             </h2>
             <p className="text-muted-foreground mb-6">
-              No results for "{query}". Try searching for ICS 33 or Professor Pattis
+              This course may not be offered in Winter 2025. Try another course or quarter.
             </p>
             <Button onClick={handleBack}>
               Back to Search

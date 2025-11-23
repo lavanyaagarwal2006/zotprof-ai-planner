@@ -1,9 +1,11 @@
 import { useState, useRef, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { Send, Search, Sparkles } from "lucide-react";
+import { Send, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Header } from "@/components/Header";
 import { cn } from "@/lib/utils";
+import { chatWithAI } from "@/services/aiService";
+import { toast } from "sonner";
 
 interface Message {
   role: "user" | "assistant";
@@ -47,27 +49,47 @@ const ChatInterface = () => {
     setInput("");
     setIsTyping(true);
 
-    // Simulate AI response (will be replaced with actual API call)
-    setTimeout(() => {
-      const responses = [
-        "Great! Let me check who's teaching those courses for Winter 2025...",
-        "I found your options! Let me break down each course:\n\n📚 ICS 33 has 3 professors available. Which section time works best for your schedule?",
-        "Based on your goals, I recommend Professor Pattis for ICS 33. They have a generous curve and clear lectures. Would you like to add this to your schedule?",
-      ];
+    try {
+      // Get AI response using our service
+      const aiResponse = await chatWithAI(messages, input);
       
       const aiMessage: Message = {
         role: "assistant",
-        content: responses[Math.floor(Math.random() * responses.length)],
+        content: aiResponse,
       };
       
       setMessages((prev) => [...prev, aiMessage]);
+    } catch (error) {
+      console.error('Chat error:', error);
+      toast.error("Sorry, I'm having trouble responding. Please try again.");
+      
+      // Add a fallback response
+      setMessages((prev) => [...prev, {
+        role: "assistant",
+        content: "I'm having trouble connecting right now. Could you try rephrasing that?"
+      }]);
+    } finally {
       setIsTyping(false);
-    }, 1000);
+    }
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
+    }
   };
 
   const handleSwitchToSearch = () => {
     navigate("/");
   };
+
+  const quickActions = [
+    "Winter 2025",
+    "ICS 33",
+    "Best for GPA",
+    "Easy A courses"
+  ];
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -98,125 +120,108 @@ const ChatInterface = () => {
         </div>
       </div>
 
-      {/* Messages Container */}
-      <main className="flex-1 overflow-y-auto">
-        <div className="container mx-auto px-4 md:px-8 py-8 max-w-[900px]">
-          <div className="space-y-6">
-            {messages.map((message, idx) => (
+      {/* Chat Messages */}
+      <div className="flex-1 container mx-auto px-4 md:px-8 py-8 max-w-4xl overflow-y-auto">
+        <div className="space-y-6">
+          {messages.map((message, idx) => (
+            <div
+              key={idx}
+              className={cn(
+                "flex gap-4 animate-fade-in",
+                message.role === "user" ? "justify-end" : "justify-start"
+              )}
+            >
+              {message.role === "assistant" && (
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-purple flex items-center justify-center flex-shrink-0">
+                  <span className="text-xl">🤖</span>
+                </div>
+              )}
+              
               <div
-                key={idx}
                 className={cn(
-                  "flex gap-3 animate-fade-in",
-                  message.role === "user" ? "justify-end" : "justify-start"
+                  "max-w-[75%] rounded-2xl px-6 py-4 shadow-lg",
+                  message.role === "user"
+                    ? "bg-gradient-to-r from-primary to-purple text-white"
+                    : "bg-background-secondary border border-white/10 text-foreground"
                 )}
               >
-                {/* Bot Avatar */}
-                {message.role === "assistant" && (
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-purple flex items-center justify-center flex-shrink-0 shadow-lg">
-                    <span className="text-2xl">🤖</span>
-                  </div>
-                )}
+                <p className="whitespace-pre-wrap leading-relaxed">{message.content}</p>
+              </div>
 
-                {/* Message Bubble */}
-                <div
-                  className={cn(
-                    "max-w-[75%] rounded-2xl p-5 whitespace-pre-wrap transition-all duration-300",
-                    message.role === "user"
-                      ? "bg-gradient-to-r from-primary to-purple text-white rounded-tr-sm shadow-[0_10px_30px_-10px_rgba(59,130,246,0.4)]"
-                      : "bg-background-secondary border border-white/10 text-foreground rounded-tl-sm shadow-[0_10px_30px_-10px_rgba(0,0,0,0.3)]"
-                  )}
-                >
-                  <p className="text-base leading-relaxed">{message.content}</p>
-                  
-                  {/* Timestamp */}
-                  <div className={cn(
-                    "text-xs mt-2",
-                    message.role === "user" ? "text-white/70" : "text-muted-foreground"
-                  )}>
-                    Just now
-                  </div>
+              {message.role === "user" && (
+                <div className="w-10 h-10 rounded-full bg-accent/20 flex items-center justify-center flex-shrink-0">
+                  <span className="text-xl">👤</span>
+                </div>
+              )}
+            </div>
+          ))}
+
+          {isTyping && (
+            <div className="flex gap-4 animate-fade-in">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-purple flex items-center justify-center flex-shrink-0">
+                <span className="text-xl">🤖</span>
+              </div>
+              <div className="bg-background-secondary border border-white/10 rounded-2xl px-6 py-4 shadow-lg">
+                <div className="flex gap-1">
+                  <div className="w-2 h-2 rounded-full bg-primary animate-pulse" style={{ animationDelay: '0ms' }} />
+                  <div className="w-2 h-2 rounded-full bg-primary animate-pulse" style={{ animationDelay: '150ms' }} />
+                  <div className="w-2 h-2 rounded-full bg-primary animate-pulse" style={{ animationDelay: '300ms' }} />
                 </div>
               </div>
-            ))}
+            </div>
+          )}
 
-            {/* Typing Indicator */}
-            {isTyping && (
-              <div className="flex gap-3 animate-fade-in">
-                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-purple flex items-center justify-center flex-shrink-0 shadow-lg">
-                  <span className="text-2xl">🤖</span>
-                </div>
-                <div className="bg-background-secondary border border-white/10 rounded-2xl rounded-tl-sm p-5 max-w-[75%] shadow-[0_10px_30px_-10px_rgba(0,0,0,0.3)]">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-sm text-muted-foreground">
-                      Analyzing your options...
-                    </span>
-                  </div>
-                  <div className="flex gap-1.5">
-                    <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
-                    <div className="w-2 h-2 bg-purple rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
-                    <div className="w-2 h-2 bg-accent rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <div ref={messagesEndRef} />
-          </div>
+          <div ref={messagesEndRef} />
         </div>
-      </main>
+      </div>
 
       {/* Input Area */}
       <div className="glassmorphic border-t border-white/10 sticky bottom-0">
-        <div className="container mx-auto px-4 md:px-8 py-6 max-w-[900px]">
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              handleSendMessage();
-            }}
-          >
-            <div className="relative group">
-              <div className="absolute -inset-0.5 bg-gradient-to-r from-primary via-purple to-accent rounded-3xl opacity-0 group-focus-within:opacity-100 blur transition duration-300" />
-              
-              <div className="relative bg-background-secondary rounded-3xl border-2 border-white/10 group-focus-within:border-transparent transition-all duration-300 p-4 flex items-end gap-3">
+        <div className="container mx-auto px-4 md:px-8 py-6 max-w-4xl">
+          {/* Quick Actions (only show at start of conversation) */}
+          {messages.length <= 1 && (
+            <div className="flex flex-wrap gap-2 mb-4 justify-center">
+              {quickActions.map((action, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => setInput(action)}
+                  className="px-4 py-2 text-sm rounded-full bg-white/5 text-muted-foreground hover:bg-white/10 hover:text-foreground transition-all duration-300 border border-white/10"
+                >
+                  {action}
+                </button>
+              ))}
+            </div>
+          )}
+
+          <div className="relative">
+            <div className="absolute -inset-0.5 bg-gradient-to-r from-primary via-purple to-accent rounded-3xl opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 blur transition duration-300" />
+            
+            <div className="relative bg-background-secondary rounded-3xl border-2 border-white/10 group-focus-within:border-transparent transition-all duration-300 shadow-lg">
+              <div className="flex items-end gap-3 px-6 py-4">
                 <textarea
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey) {
-                      e.preventDefault();
-                      handleSendMessage();
-                    }
-                  }}
+                  onKeyPress={handleKeyPress}
                   placeholder="Ask me anything about courses, professors, or your schedule..."
-                  className="flex-1 bg-transparent text-base text-foreground placeholder:text-muted-foreground focus:outline-none resize-none min-h-[24px] max-h-[120px]"
-                  disabled={isTyping}
                   rows={1}
+                  className="flex-1 bg-transparent border-none outline-none text-foreground text-base placeholder:text-muted-foreground resize-none max-h-32"
+                  style={{ minHeight: '24px' }}
                 />
+                
                 <button
-                  type="submit"
+                  onClick={handleSendMessage}
                   disabled={!input.trim() || isTyping}
-                  className="w-12 h-12 rounded-full bg-gradient-to-r from-primary to-purple text-white flex items-center justify-center flex-shrink-0 transition-all duration-300 hover:scale-110 hover:shadow-[0_0_30px_rgba(59,130,246,0.6)] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                  className="w-12 h-12 rounded-full bg-gradient-to-r from-primary to-purple text-white flex items-center justify-center transition-all duration-300 hover:scale-110 hover:shadow-[0_0_30px_rgba(59,130,246,0.6)] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex-shrink-0"
                 >
                   <Send className="h-5 w-5" />
                 </button>
               </div>
             </div>
-          </form>
+          </div>
 
-          {/* Quick Actions */}
-          {messages.length <= 1 && (
-            <div className="flex flex-wrap gap-2 mt-4">
-              {["Winter 2025", "Spring 2025", "ICS courses", "High GPA Focus"].map((suggestion) => (
-                <button
-                  key={suggestion}
-                  onClick={() => setInput(suggestion)}
-                  className="px-4 py-2 bg-white/5 backdrop-blur-sm text-sm rounded-full border border-white/10 hover:bg-primary/20 hover:border-primary/30 transition-all duration-300 text-muted-foreground hover:text-foreground"
-                >
-                  {suggestion}
-                </button>
-              ))}
-            </div>
-          )}
+          <p className="text-xs text-muted-foreground text-center mt-3">
+            Press Enter to send, Shift+Enter for new line
+          </p>
         </div>
       </div>
     </div>
