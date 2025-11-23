@@ -43,8 +43,15 @@ const SearchResults = () => {
         
         console.log('Parsed:', parsed);
         
-        // Fetch course sections from Anteater API (default to Winter 2025)
-        const course = await getCourseSections('2025', 'Winter', parsed.department, parsed.courseNumber);
+        // Fetch course sections from Anteater API (try Fall 2024 first, then Winter 2025)
+        let course = await getCourseSections('2024', 'Fall', parsed.department, parsed.courseNumber);
+        let quarterText = 'Fall 2024';
+        
+        // If no results, try Winter 2025
+        if (!course || course.sections.length === 0) {
+          course = await getCourseSections('2025', 'Winter', parsed.department, parsed.courseNumber);
+          quarterText = 'Winter 2025';
+        }
         
         if (!course) {
           toast.error(`No results found for ${query}. Try another course.`);
@@ -56,7 +63,8 @@ const SearchResults = () => {
         setCourseInfo({
           id: `${course.deptCode} ${course.courseNumber}`,
           title: course.courseTitle,
-          description: course.courseComment
+          description: course.courseComment,
+          quarter: quarterText
         });
         
         // Process each section
@@ -223,7 +231,7 @@ const SearchResults = () => {
                 <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-2 tracking-tight">
                   {courseInfo.title || "Course Information"}
                 </h1>
-                <p className="text-muted-foreground">{professors.length} section{professors.length !== 1 ? 's' : ''} available for Winter 2025</p>
+                <p className="text-muted-foreground">{professors.length} section{professors.length !== 1 ? 's' : ''} available for {courseInfo.quarter}</p>
               </div>
             </div>
           </div>
@@ -267,7 +275,7 @@ const SearchResults = () => {
               No sections available
             </h2>
             <p className="text-muted-foreground mb-6">
-              This course may not be offered in Winter 2025. Try another course or quarter.
+              This course may not be offered this quarter. Try searching for another course.
             </p>
             <Button onClick={handleBack}>
               Back to Search
