@@ -1,0 +1,13 @@
+project_id = "tafippnyaagpqfhsabfc"
+
+[functions.search-intent]
+verify_jwt = false
+
+[functions.fetch-course-data]
+verify_jwt = false
+
+[functions.fetch-professor-data]
+verify_jwt = false
+
+[functions.generate-ai-summary]
+verify_jwt = false
