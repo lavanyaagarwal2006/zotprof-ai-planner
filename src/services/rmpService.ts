@@ -9,6 +9,13 @@ export interface RMPData {
   department: string;
   firstName: string;
   lastName: string;
+  gradeDistribution: {
+    A: number;
+    B: number;
+    C: number;
+    D: number;
+    F: number;
+  };
   topReviews: Array<{
     comment: string;
     class: string;
@@ -29,6 +36,13 @@ const UCI_PROFESSOR_DATA: Record<string, RMPData> = {
     department: 'Computer Science',
     firstName: 'Richard',
     lastName: 'Pattis',
+    gradeDistribution: {
+      A: 45,
+      B: 30,
+      C: 15,
+      D: 7,
+      F: 3
+    },
     topReviews: [
       {
         comment: 'Tough but fair. His lectures are incredibly detailed and if you do the homework, you\'ll do well. The curve helps a lot!',
@@ -62,6 +76,13 @@ const UCI_PROFESSOR_DATA: Record<string, RMPData> = {
     department: 'Computer Science',
     firstName: 'Alex',
     lastName: 'Thornton',
+    gradeDistribution: {
+      A: 38,
+      B: 28,
+      C: 20,
+      D: 10,
+      F: 4
+    },
     topReviews: [
       {
         comment: 'Amazing professor but very challenging. You\'ll actually learn CS deeply. Don\'t take if you want an easy A.',
@@ -88,6 +109,13 @@ const UCI_PROFESSOR_DATA: Record<string, RMPData> = {
     department: 'Computer Science',
     firstName: 'Michael',
     lastName: 'Shindler',
+    gradeDistribution: {
+      A: 50,
+      B: 28,
+      C: 15,
+      D: 5,
+      F: 2
+    },
     topReviews: [
       {
         comment: 'Good lecturer, fair exams. Homework can be time-consuming but helpful for learning.',
@@ -107,6 +135,13 @@ const UCI_PROFESSOR_DATA: Record<string, RMPData> = {
     department: 'Computer Science',
     firstName: 'Shannon',
     lastName: 'Alfaro',
+    gradeDistribution: {
+      A: 55,
+      B: 25,
+      C: 12,
+      D: 5,
+      F: 3
+    },
     topReviews: [
       {
         comment: 'Really cares about students. Lectures are well organized and tests are fair. Great for beginners!',
