@@ -75,34 +75,47 @@ export async function getCourseSections(
     const params = new URLSearchParams({
       year: year,
       quarter: quarter,
-      department: department.toUpperCase(),
+      department: department, // Don't modify this - use exactly what's mapped
       courseNumber: courseNumber
     });
 
+    console.log(`📡 Fetching: ${ANTEATER_BASE_URL}/websoc?${params.toString()}`);
+    
     const response = await fetch(`${ANTEATER_BASE_URL}/websoc?${params.toString()}`);
     
     if (!response.ok) {
+      console.error(`❌ API error: ${response.status}`);
       throw new Error(`API error: ${response.status}`);
     }
 
     const result = await response.json();
     
-    // Navigate nested structure: schools > departments > courses
-    if (result.data?.schools?.length > 0) {
-      for (const school of result.data.schools) {
-        for (const dept of school.departments) {
-          for (const course of dept.courses) {
-            if (course.courseNumber === courseNumber) {
-              return course as Course;
-            }
+    // Better logging
+    if (!result.data?.schools) {
+      console.error('❌ No schools in API response');
+      return null;
+    }
+    
+    console.log(`📦 Found ${result.data.schools.length} schools`);
+    
+    // Navigate nested structure
+    for (const school of result.data.schools) {
+      for (const dept of school.departments) {
+        console.log(`  📚 Checking department: ${dept.deptCode}`);
+        for (const course of dept.courses) {
+          if (course.courseNumber === courseNumber || course.courseNumber.includes(courseNumber)) {
+            console.log(`✅ Found: ${course.courseTitle} (${course.sections.length} sections)`);
+            return course as Course;
           }
         }
       }
     }
     
+    console.warn('⚠️ Course not found in API response');
     return null;
+    
   } catch (error) {
-    console.error('Anteater API error:', error);
+    console.error('❌ Anteater API error:', error);
     throw error;
   }
 }
@@ -218,20 +231,56 @@ export function formatMeetingTime(section: Section): string {
 // Utility: Parse search queries like "ICS 33" or "COMPSCI 33"
 export function parseSearchQuery(query: string): { department: string; courseNumber: string } | null {
   const cleaned = query.trim().toUpperCase();
+  
+  // Match pattern: DEPT + NUMBER (e.g., "ICS 33", "MATH 3A")
   const match = cleaned.match(/([A-Z&\s]+?)\s*(\d+[A-Z]*)/);
   
   if (!match) return null;
   
-  let department = match[1].trim();
+  let department = match[1].trim().replace(/\s+/g, ' ');
   const courseNumber = match[2];
   
-  // Handle common aliases
+  // FIXED: Complete UCI department code mapping
   const deptAliases: Record<string, string> = {
-    'ICS': 'COMPSCI',
-    'I&C SCI': 'IN4MATX',
+    // ICS courses are actually "I&C SCI" in UCI's system
+    'ICS': 'I&C SCI',
+    'I&C SCI': 'I&C SCI',
+    
+    // Upper division CS might be COMPSCI
+    'COMPSCI': 'COMPSCI',
+    'CS': 'COMPSCI',
+    
+    // Informatics
+    'IN4MATX': 'IN4MATX',
+    'INFORMATICS': 'IN4MATX',
+    'INFO': 'IN4MATX',
+    
+    // Math
+    'MATH': 'MATH',
+    'MATHEMATICS': 'MATH',
+    
+    // Writing
+    'WRITING': 'WRITING',
+    'WR': 'WRITING',
+    
+    // Bio
+    'BIO SCI': 'BIO SCI',
+    'BIOSCI': 'BIO SCI',
+    'BIO': 'BIO SCI',
+    
+    // Chemistry
+    'CHEM': 'CHEM',
+    'CHEMISTRY': 'CHEM',
+    
+    // Physics
+    'PHYSICS': 'PHYSICS',
+    'PHYS': 'PHYSICS',
   };
   
-  department = deptAliases[department] || department;
+  const mappedDept = deptAliases[department];
+  department = mappedDept || department;
+  
+  console.log(`🔍 Parsed: "${query}" → Dept: "${department}", Course: "${courseNumber}"`);
   
   return { department, courseNumber };
 }

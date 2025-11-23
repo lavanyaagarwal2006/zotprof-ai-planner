@@ -15,6 +15,7 @@ import {
   parseSearchQuery
 } from "@/services/anteaterAPI";
 import { generateProfessorSummary } from "@/services/aiService";
+import { getRMPData, getRMPSummary, getTopTags, getTopReview } from "@/services/rmpService";
 
 const SearchResults = () => {
   const [searchParams] = useSearchParams();
@@ -67,7 +68,7 @@ const SearchResults = () => {
           quarter: quarterText
         });
         
-        // Process each section
+        // Process each section with RMP data
         const enrichedSections = await Promise.all(
           course.sections.map(async (section) => {
             const instructor = section.instructors[0];
@@ -94,8 +95,12 @@ const SearchResults = () => {
               };
             }
             
-            // Fetch grade distribution
-            const gradeData = await getGradeDistribution(instructor, parsed.courseNumber);
+            // Parallel fetch: grades + RMP data
+            const [gradeData, rmpData] = await Promise.all([
+              getGradeDistribution(instructor, parsed.courseNumber),
+              getRMPData(instructor)
+            ]);
+            
             const gradePercentages = gradeData ? calculateGradePercentages(gradeData) : null;
             
             // Convert to Professor card format
@@ -119,12 +124,25 @@ const SearchResults = () => {
             const seatPercent = getSeatAvailabilityPercent(section);
             const almostFull = isAlmostFull(section);
             
+            // Build enhanced tags with RMP data
+            const enhancedTags = [
+              almostFull ? '⚠️ Almost Full' : `${seatPercent}% Full`,
+              gradePercentages ? `${gradePercentages.aPercent}% A's` : 'No grades',
+              section.meetings[0]?.bldg?.[0] || 'TBA'
+            ];
+            
+            // Add RMP tags if available
+            if (rmpData) {
+              const rmpTags = getTopTags(rmpData);
+              enhancedTags.push(...rmpTags.slice(0, 2)); // Add top 2 RMP tags
+            }
+            
             return {
               name: instructor,
               department: course.deptCode,
-              rating: 0, // RMP data would go here
-              difficulty: gradePercentages ? (gradePercentages.fPercent > 20 ? 4.5 : 3.5) : 0,
-              reviewCount: gradePercentages ? gradePercentages.totalGrades : 0,
+              rating: rmpData?.avgRating || 0,
+              difficulty: rmpData?.avgDifficulty || (gradePercentages ? (gradePercentages.fPercent > 20 ? 4.5 : 3.5) : 0),
+              reviewCount: rmpData?.numRatings || (gradePercentages ? gradePercentages.totalGrades : 0),
               grades,
               section: {
                 time: formatMeetingTime(section),
@@ -134,12 +152,10 @@ const SearchResults = () => {
                 },
                 code: section.sectionCode,
               },
-              tags: [
-                almostFull ? '⚠️ Almost Full' : `${seatPercent}% Full`,
-                gradePercentages ? `${gradePercentages.aPercent}% A's` : 'No grades',
-                section.meetings[0]?.bldg?.[0] || 'TBA'
-              ],
-              aiInsight,
+              tags: enhancedTags,
+              aiInsight: rmpData 
+                ? `${getRMPSummary(rmpData)}\n\n💬 Top Review: "${getTopReview(rmpData)}"\n\n${aiInsight}`
+                : aiInsight,
             };
           })
         );

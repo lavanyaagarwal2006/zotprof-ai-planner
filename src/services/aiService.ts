@@ -13,6 +13,12 @@ export interface ProfessorOption {
   grades: any;
   meetingTime: string;
   seats: string;
+  courseName?: string;
+  courseTitle?: string;
+  rmpData?: any;
+  rmpSummary?: string;
+  topTags?: string[];
+  seatPercent?: number;
 }
 
 /**
