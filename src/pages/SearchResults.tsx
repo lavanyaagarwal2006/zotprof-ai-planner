@@ -95,27 +95,30 @@ const SearchResults = () => {
               };
             }
             
-        // Fetch RMP data (includes grade distribution)
-        const rmpData = await getRMPData(instructor);
+        // Parallel fetch: grades + RMP data
+        const [gradeData, rmpData] = await Promise.all([
+          getGradeDistribution(instructor, parsed.courseNumber),
+          getRMPData(instructor)
+        ]);
         
-        // Use RMP grade distribution if available, otherwise default to zeros
-        const grades = rmpData?.gradeDistribution || { A: 0, B: 0, C: 0, D: 0, F: 0 };
+        const gradePercentages = gradeData ? calculateGradePercentages(gradeData) : null;
+        
+        // Convert to Professor card format
+        const grades = gradePercentages ? {
+          A: gradePercentages.aPercent,
+          B: gradePercentages.bPercent,
+          C: gradePercentages.cPercent,
+          D: gradePercentages.dPercent,
+          F: gradePercentages.fPercent,
+        } : { A: 0, B: 0, C: 0, D: 0, F: 0 };
             
         // Generate AI summary
         let aiInsight = '';
         try {
-          const gradePercentages = rmpData?.gradeDistribution ? {
-            aPercent: grades.A,
-            bPercent: grades.B,
-            cPercent: grades.C,
-            dPercent: grades.D,
-            fPercent: grades.F,
-            totalGrades: rmpData.numRatings
-          } : null;
           aiInsight = await generateProfessorSummary(instructor, gradePercentages);
         } catch (error) {
           console.error('Error generating AI insight:', error);
-          aiInsight = `Professor ${instructor} teaches this course. ${grades.A > 0 ? `Grade distribution: ${grades.A}% A's, ${grades.B}% B's.` : 'Historical data unavailable.'}`;
+          aiInsight = `Professor ${instructor} teaches this course. ${gradePercentages ? `Grade distribution: ${gradePercentages.aPercent}% A's, ${gradePercentages.bPercent}% B's.` : 'Historical data unavailable.'}`;
         }
             
             const seatPercent = getSeatAvailabilityPercent(section);
@@ -124,7 +127,7 @@ const SearchResults = () => {
         // Build enhanced tags with RMP data
         const enhancedTags = [
           almostFull ? '⚠️ Almost Full' : `${seatPercent}% Full`,
-          grades.A > 0 ? `${grades.A}% A's` : 'No grades',
+          gradePercentages ? `${gradePercentages.aPercent}% A's` : 'No grades',
           section.meetings[0]?.bldg?.[0] || 'TBA'
         ];
             
@@ -138,8 +141,8 @@ const SearchResults = () => {
           name: instructor,
           department: course.deptCode,
           rating: rmpData?.avgRating || 0,
-          difficulty: rmpData?.avgDifficulty || (grades.F > 20 ? 4.5 : 3.5),
-          reviewCount: rmpData?.numRatings || 0,
+          difficulty: rmpData?.avgDifficulty || (gradePercentages ? (gradePercentages.fPercent > 20 ? 4.5 : 3.5) : 0),
+          reviewCount: rmpData?.numRatings || (gradePercentages ? gradePercentages.totalGrades : 0),
           grades,
               section: {
                 time: formatMeetingTime(section),
