@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Header } from "@/components/Header";
 import { ProfessorCard, Professor } from "@/components/ProfessorCard";
@@ -97,20 +97,20 @@ const SearchResults = () => {
       <Header />
 
       {/* Top Navigation */}
-      <div className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-16 z-40">
+      <div className="glassmorphic border-b border-white/10 sticky top-16 z-40">
         <div className="container mx-auto px-4 md:px-8 py-4">
           <div className="flex items-center justify-between flex-wrap gap-4">
             <button
               onClick={handleBack}
-              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors duration-300"
             >
               <ArrowLeft className="h-4 w-4" />
               Back to Search
             </button>
             
             <div className="flex-1 text-center">
-              <span className="text-lg font-heading font-semibold">
-                {query} - Winter 2025
+              <span className="text-lg font-bold gradient-text-primary tracking-tight">
+                {query} › Winter 2025
               </span>
             </div>
 
@@ -118,9 +118,10 @@ const SearchResults = () => {
               variant="outline"
               size="sm"
               onClick={handleSwitchToAI}
-              className="whitespace-nowrap"
+              className="whitespace-nowrap border-accent/30 text-accent hover:bg-accent/10 hover:border-accent/50 transition-all duration-300"
             >
-              💬 Switch to AI Planning
+              <Sparkles className="h-4 w-4 mr-2" />
+              Try AI Advisor
             </Button>
           </div>
         </div>
@@ -128,24 +129,33 @@ const SearchResults = () => {
 
       <main className="container mx-auto px-4 md:px-8 py-8">
         {/* Course Header Card */}
-        <div className="bg-card border border-border rounded-xl p-6 mb-8">
-          <div className="flex items-start justify-between flex-wrap gap-4">
+        <div className="bg-gradient-to-br from-primary/10 via-purple/10 to-transparent border border-white/10 rounded-2xl p-8 mb-8 relative overflow-hidden hover-lift-sm">
+          {/* Subtle background pattern */}
+          <div className="absolute inset-0 opacity-30" style={{
+            backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.03) 1px, transparent 1px)',
+            backgroundSize: '20px 20px'
+          }} />
+
+          <div className="relative flex items-start justify-between flex-wrap gap-6">
             <div>
-              <h1 className="text-2xl md:text-3xl font-heading font-bold mb-2">
-                ICS 33 - Intermediate Programming
-              </h1>
-              <div className="flex items-center gap-3 flex-wrap">
-                <span className="px-3 py-1 bg-accent/20 text-accent text-sm font-medium rounded-full">
+              <div className="flex items-center gap-3 mb-3">
+                <span className="px-3 py-1 bg-accent/20 backdrop-blur-sm text-accent text-sm font-semibold rounded-full border border-accent/30">
+                  ICS 33
+                </span>
+                <span className="px-3 py-1 bg-white/5 backdrop-blur-sm text-muted-foreground text-sm rounded-full border border-white/10">
                   Winter 2025
                 </span>
-                <span className="text-sm text-muted-foreground">
-                  3 sections available
-                </span>
               </div>
+              <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-2 tracking-tight">
+                Intermediate Programming
+              </h1>
+              <p className="text-muted-foreground">3 sections available</p>
             </div>
             <div className="text-right">
-              <div className="text-sm text-muted-foreground mb-1">Average Grade Distribution</div>
-              <div className="text-lg font-semibold">30% A's • 40% B's</div>
+              <div className="text-sm text-muted-foreground mb-2">Average Grade Distribution</div>
+              <div className="text-2xl font-bold gradient-text-primary tabular-nums">
+                30% A's • 40% B's
+              </div>
             </div>
           </div>
         </div>
@@ -156,11 +166,11 @@ const SearchResults = () => {
             {[1, 2, 3].map((i) => (
               <div
                 key={i}
-                className="bg-card border border-border rounded-xl p-6 animate-pulse"
+                className="bg-background-secondary border border-white/10 rounded-2xl p-7 shimmer"
               >
-                <div className="h-6 bg-muted rounded w-1/3 mb-4" />
-                <div className="h-4 bg-muted rounded w-1/2 mb-2" />
-                <div className="h-4 bg-muted rounded w-2/3" />
+                <div className="h-6 bg-white/5 rounded w-1/3 mb-4" />
+                <div className="h-4 bg-white/5 rounded w-1/2 mb-2" />
+                <div className="h-4 bg-white/5 rounded w-2/3" />
               </div>
             ))}
           </div>
@@ -168,7 +178,7 @@ const SearchResults = () => {
 
         {/* Professor Cards */}
         {!loading && professors.length > 0 && (
-          <div className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {professors.map((professor, idx) => (
               <ProfessorCard
                 key={idx}
