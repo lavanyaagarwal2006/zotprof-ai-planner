@@ -35,7 +35,7 @@ const Index = () => {
       
       <main className="container mx-auto px-4 md:px-8 pt-16">
         {/* Hero Section */}
-        <section className="min-h-screen flex flex-col items-center justify-center -mt-16">
+        <section className="min-h-screen flex flex-col items-center justify-center">
           <div className="text-center max-w-4xl mx-auto animate-fade-in">
             <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold mb-6 tracking-tight leading-[1.1]">
               <span className="gradient-text-primary">Find Your Perfect</span>
