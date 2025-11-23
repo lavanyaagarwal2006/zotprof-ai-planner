@@ -1,8 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { Send } from "lucide-react";
+import { Send, Search, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Header } from "@/components/Header";
 import { cn } from "@/lib/utils";
 
@@ -75,22 +74,25 @@ const ChatInterface = () => {
       <Header />
 
       {/* Top Navigation */}
-      <div className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-16 z-40">
+      <div className="glassmorphic border-b border-white/10 sticky top-16 z-40">
         <div className="container mx-auto px-4 md:px-8 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="text-xl">🤖</span>
-              <span className="text-lg font-heading font-semibold">
-                ZotProf AI Advisor
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-purple flex items-center justify-center">
+                <span className="text-xl">🤖</span>
+              </div>
+              <span className="text-lg font-bold gradient-text-primary tracking-tight">
+                AI Academic Advisor
               </span>
             </div>
             <Button
               variant="ghost"
               size="sm"
               onClick={handleSwitchToSearch}
-              className="text-sm"
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors duration-300"
             >
-              🔍 Switch to Search
+              <Search className="h-4 w-4 mr-2" />
+              Search Mode
             </Button>
           </div>
         </div>
@@ -98,48 +100,61 @@ const ChatInterface = () => {
 
       {/* Messages Container */}
       <main className="flex-1 overflow-y-auto">
-        <div className="container mx-auto px-4 md:px-8 py-8 max-w-[800px]">
+        <div className="container mx-auto px-4 md:px-8 py-8 max-w-[900px]">
           <div className="space-y-6">
             {messages.map((message, idx) => (
               <div
                 key={idx}
                 className={cn(
-                  "flex",
+                  "flex gap-3 animate-fade-in",
                   message.role === "user" ? "justify-end" : "justify-start"
                 )}
               >
+                {/* Bot Avatar */}
+                {message.role === "assistant" && (
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-purple flex items-center justify-center flex-shrink-0 shadow-lg">
+                    <span className="text-2xl">🤖</span>
+                  </div>
+                )}
+
+                {/* Message Bubble */}
                 <div
                   className={cn(
-                    "max-w-[70%] rounded-xl p-4 whitespace-pre-wrap",
+                    "max-w-[75%] rounded-2xl p-5 whitespace-pre-wrap transition-all duration-300",
                     message.role === "user"
-                      ? "bg-accent/20 border border-accent text-foreground ml-auto rounded-br-sm"
-                      : "bg-primary/20 border border-primary text-foreground mr-auto rounded-bl-sm"
+                      ? "bg-gradient-to-r from-primary to-purple text-white rounded-tr-sm shadow-[0_10px_30px_-10px_rgba(59,130,246,0.4)]"
+                      : "bg-background-secondary border border-white/10 text-foreground rounded-tl-sm shadow-[0_10px_30px_-10px_rgba(0,0,0,0.3)]"
                   )}
                 >
-                  {message.role === "assistant" && (
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="text-base">🤖</span>
-                    </div>
-                  )}
-                  <p className="text-sm leading-relaxed">{message.content}</p>
+                  <p className="text-base leading-relaxed">{message.content}</p>
+                  
+                  {/* Timestamp */}
+                  <div className={cn(
+                    "text-xs mt-2",
+                    message.role === "user" ? "text-white/70" : "text-muted-foreground"
+                  )}>
+                    Just now
+                  </div>
                 </div>
               </div>
             ))}
 
             {/* Typing Indicator */}
             {isTyping && (
-              <div className="flex justify-start">
-                <div className="bg-primary/20 border border-primary rounded-xl rounded-bl-sm p-4 max-w-[70%]">
-                  <div className="flex items-center gap-2">
-                    <span className="text-base">🤖</span>
+              <div className="flex gap-3 animate-fade-in">
+                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-purple flex items-center justify-center flex-shrink-0 shadow-lg">
+                  <span className="text-2xl">🤖</span>
+                </div>
+                <div className="bg-background-secondary border border-white/10 rounded-2xl rounded-tl-sm p-5 max-w-[75%] shadow-[0_10px_30px_-10px_rgba(0,0,0,0.3)]">
+                  <div className="flex items-center gap-2 mb-2">
                     <span className="text-sm text-muted-foreground">
-                      ZotProf is analyzing...
+                      Analyzing your options...
                     </span>
                   </div>
-                  <div className="flex gap-1 mt-2">
+                  <div className="flex gap-1.5">
                     <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
-                    <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
-                    <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+                    <div className="w-2 h-2 bg-purple rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
+                    <div className="w-2 h-2 bg-accent rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
                   </div>
                 </div>
               </div>
@@ -151,40 +166,51 @@ const ChatInterface = () => {
       </main>
 
       {/* Input Area */}
-      <div className="border-t border-border bg-card/95 backdrop-blur-sm sticky bottom-0">
-        <div className="container mx-auto px-4 md:px-8 py-4 max-w-[800px]">
+      <div className="glassmorphic border-t border-white/10 sticky bottom-0">
+        <div className="container mx-auto px-4 md:px-8 py-6 max-w-[900px]">
           <form
             onSubmit={(e) => {
               e.preventDefault();
               handleSendMessage();
             }}
-            className="flex gap-2"
           >
-            <Input
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder="Type your response..."
-              className="h-14 bg-background"
-              disabled={isTyping}
-            />
-            <Button
-              type="submit"
-              size="lg"
-              disabled={!input.trim() || isTyping}
-              className="px-6"
-            >
-              <Send className="h-5 w-5" />
-            </Button>
+            <div className="relative group">
+              <div className="absolute -inset-0.5 bg-gradient-to-r from-primary via-purple to-accent rounded-3xl opacity-0 group-focus-within:opacity-100 blur transition duration-300" />
+              
+              <div className="relative bg-background-secondary rounded-3xl border-2 border-white/10 group-focus-within:border-transparent transition-all duration-300 p-4 flex items-end gap-3">
+                <textarea
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSendMessage();
+                    }
+                  }}
+                  placeholder="Ask me anything about courses, professors, or your schedule..."
+                  className="flex-1 bg-transparent text-base text-foreground placeholder:text-muted-foreground focus:outline-none resize-none min-h-[24px] max-h-[120px]"
+                  disabled={isTyping}
+                  rows={1}
+                />
+                <button
+                  type="submit"
+                  disabled={!input.trim() || isTyping}
+                  className="w-12 h-12 rounded-full bg-gradient-to-r from-primary to-purple text-white flex items-center justify-center flex-shrink-0 transition-all duration-300 hover:scale-110 hover:shadow-[0_0_30px_rgba(59,130,246,0.6)] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                >
+                  <Send className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
           </form>
 
           {/* Quick Actions */}
           {messages.length <= 1 && (
-            <div className="flex flex-wrap gap-2 mt-3">
-              {["Winter 2025", "Spring 2025", "ICS courses", "High GPA"].map((suggestion) => (
+            <div className="flex flex-wrap gap-2 mt-4">
+              {["Winter 2025", "Spring 2025", "ICS courses", "High GPA Focus"].map((suggestion) => (
                 <button
                   key={suggestion}
                   onClick={() => setInput(suggestion)}
-                  className="px-3 py-1 bg-secondary text-sm rounded-full hover:bg-secondary/80 transition-colors"
+                  className="px-4 py-2 bg-white/5 backdrop-blur-sm text-sm rounded-full border border-white/10 hover:bg-primary/20 hover:border-primary/30 transition-all duration-300 text-muted-foreground hover:text-foreground"
                 >
                   {suggestion}
                 </button>
