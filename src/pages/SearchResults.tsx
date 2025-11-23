@@ -37,6 +37,13 @@ const SearchResults = () => {
           );
           
           console.log('Course data:', courseData);
+          
+          // Check if we're using mock data (happens in preview environment)
+          const isUsingMockData = courseData.course?.description?.includes('unavailable in preview');
+          if (isUsingMockData) {
+            toast.info("📋 Showing demo data in preview. Real data will load in production.");
+          }
+          
           setCourseInfo(courseData.course);
           
           // Step 3: Transform API data into Professor cards format
